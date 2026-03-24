@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KhetMitra — Ultimate Smart Farm Portal</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=DM+Sans:wght@300;400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+    <style>
+        :root {
+            --soil: #2C1A0E; --earth: #5C3D1E; --clay: #A0522D; --wheat: #D4A853; --straw: #F2D98B;
+            --leaf: #2D5A27; --mint: #4A8C3F; --sage: #8AB87A; --sky: #7DB8D4; --water: #3A7CA5;
+            --danger: #C0392B; --warn: #E67E22; --cream: #FAF5EB; --bg: #0F1A0D;
+            --card: #141F11; --card2: #1A2716; --border: rgba(138, 184, 122, 0.15);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--cream); min-height: 100vh; overflow-x: hidden; }
+        
+        /* Background Texture */
+        body::before {
+            content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 0;
+            background: radial-gradient(ellipse 80% 60% at 10% 0%, rgba(45,90,39,0.18) 0%, transparent 60%),
+                        radial-gradient(ellipse 60% 50% at 90% 100%, rgba(44,26,14,0.4) 0%, transparent 60%);
+        }
+
+        /* ── LOGIN SECTION ── */
+        .login-wrap { position: relative; z-index: 1000; min-height: 100vh; display: flex; align-items: center; justify-content: center; background: var(--bg); padding: 20px; }
+        .login-box { background: var(--card); border: 1px solid var(--border); border-radius: 28px; padding: 40px; width: 100%; max-width: 450px; box-shadow: 0 20px 50px rgba(0,0,0,0.5); }
+        .login-logo { text-align: center; margin-bottom: 30px; }
+        .big-icon { font-size: 50px; margin-bottom: 10px; display: block; }
+        .login-logo h1 { font-family: 'Playfair Display', serif; font-size: 32px; color: var(--straw); }
+        
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; font-size: 11px; text-transform: uppercase; color: var(--sage); margin-bottom: 5px; font-weight: 600; }
+        .form-group input, .form-group select { width: 100%; padding: 12px; border-radius: 10px; background: var(--card2); border: 1px solid var(--border); color: white; outline: none; }
+        .btn-primary { width: 100%; padding: 14px; border-radius: 10px; background: linear-gradient(135deg, var(--leaf), var(--mint)); color: white; border: none; font-weight: 700; cursor: pointer; transition: 0.3s; margin-top: 10px; }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(74, 140, 63, 0.4); }
+        .switch-link { text-align: center; margin-top: 15px; font-size: 13px; color: var(--sage); }
+        .switch-link a { color: var(--straw); cursor: pointer; text-decoration: underline; }
+
+        /* ── APP UI ── */
+        #appScreen { display: none; position: relative; z-index: 1; }
+        header { display: flex; align-items: center; justify-content: space-between; padding: 15px 30px; background: rgba(15,26,13,0.9); backdrop-filter: blur(10px); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 100; }
+        .logo { display: flex; align-items: center; gap: 12px; }
+        .logo-icon { width: 35px; height: 35px; background: linear-gradient(135deg, var(--leaf), var(--mint)); border-radius: 8px; display: flex; align-items: center; justify-content: center; }
+        .logo-text { font-family: 'Playfair Display', serif; font-size: 20px; font-weight: 700; color: var(--straw); }
+        
+        .tab-nav { display: flex; background: rgba(20,31,17,0.8); padding: 0 30px; border-bottom: 1px solid var(--border); overflow-x: auto; }
+        .tab-btn { padding: 15px 20px; color: var(--sage); cursor: pointer; border-bottom: 2px solid transparent; font-size: 14px; font-weight: 600; white-space: nowrap; transition: 0.3s; }
+        .tab-btn.active { color: var(--straw); border-bottom-color: var(--straw); background: rgba(255,255,255,0.03); }
+
+        .tab-pane { display: none; padding: 30px; animation: fadeIn 0.4s ease; }
+        .tab-pane.active { display: block; }
+
+        /* Hero Banner */
+        .hero-band { padding: 30px; background: linear-gradient(135deg, rgba(45,90,39,0.3), rgba(44,26,14,0.2)); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px; }
+        .welcome-msg h1 { font-family: 'Playfair Display', serif; font-size: 32px; background: linear-gradient(90deg, var(--straw), var(--sage)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+
+        /* Grid System */
+        .main-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+        .card { background: var(--card); border: 1px solid var(--border); border-radius: 20px; padding: 24px; position: relative; overflow: hidden; transition: 0.3s; }
+        .card:hover { transform: translateY(-5px); box-shadow: 0 10px 30px rgba(0,0,0,0.4); }
+        .card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: var(--ca, linear-gradient(90deg, var(--leaf), var(--mint))); }
+        .card-title { font-size: 12px; text-transform: uppercase; letter-spacing: 2px; color: var(--sage); margin-bottom: 15px; display: block; font-weight: 700; }
+
+        /* Soil Metrics */
+        .soil-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .soil-item { background: var(--card2); padding: 12px; border-radius: 12px; border: 1px solid var(--border); }
+        .soil-val { font-family: 'Space Mono', monospace; font-size: 22px; color: var(--wheat); font-weight: 700; }
+        .soil-lbl { font-size: 10px; color: var(--sage); }
+
+        /* Alert styling */
+        .alert-item { background: var(--card2); border-left: 4px solid var(--danger); padding: 12px; border-radius: 8px; margin-bottom: 10px; font-size: 13px; }
+        .alert-item.warn { border-left-color: var(--warn); }
+        .alert-item.info { border-left-color: var(--sky); }
+
+        /* Market & Yield Table */
+        .list-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .price-up { color: #2ECC71; font-size: 11px; }
+        .price-dn { color: #E74C3C; font-size: 11px; }
+
+        /* Task Items */
+        .task-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+        .task-card { background: var(--card2); padding: 15px; border-radius: 12px; border: 1px solid var(--border); font-size: 12px; }
+        .task-done { opacity: 0.5; text-decoration: line-through; }
+
+        /* Map & Scheme Specifics */
+        #bankMap { height: 450px; border-radius: 15px; border: 1px solid var(--border); margin-top: 15px; }
+        .result-card { background: var(--card2); border: 1px solid var(--border); border-radius: 15px; padding: 20px; margin-bottom: 15px; border-left: 5px solid var(--leaf); }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        @media (max-width: 900px) { .main-grid { grid-template-columns: 1fr; } .hero-band { flex-direction: column; text-align: center; } }
+    </style>
+</head>
+<body>
+
+<!-- ── AUTHENTICATION ── -->
+<div id="loginScreen" class="login-wrap">
+    <div class="login-box">
+        <div id="loginForm">
+            <div class="login-logo">
+                <span class="big-icon">🌾</span>
+                <h1>KhetMitra</h1>
+                <p style="color:var(--sage); font-size: 13px;">Smart Farm Dashboard Login</p>
+            </div>
+            <div class="form-group">
+                <label>Mobile Number</label>
+                <input type="tel" id="lMobile" placeholder="9999999999" maxlength="10">
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" id="lPass" placeholder="••••">
+            </div>
+            <button class="btn-primary" onclick="handleLogin()">Login to Farm →</button>
+            <p class="switch-link">New Farmer? <a onclick="toggleAuth(true)">Create Account</a></p>
+            <p style="text-align:center; font-size: 10px; color: var(--sage); margin-top: 10px;">Demo: 9999999999 / 1234</p>
+        </div>
+
+        <div id="regForm" style="display:none;">
+            <div class="login-logo"><h1>Join KhetMitra</h1></div>
+            <div class="form-group"><label>Full Name</label><input type="text" id="rName" placeholder="Ramesh Patil"></div>
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                <div class="form-group"><label>Mobile</label><input type="tel" id="rMobile" maxlength="10"></div>
+                <div class="form-group"><label>State</label><select id="rState"><option>Maharashtra</option><option>Punjab</option><option>Gujarat</option></select></div>
+            </div>
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                <div class="form-group"><label>Land (Acres)</label><input type="number" id="rLand" value="5"></div>
+                <div class="form-group"><label>Main Crop</label><select id="rCrop"><option>Onion</option><option>Wheat</option><option>Tomato</option></select></div>
+            </div>
+            <div class="form-group"><label>Password</label><input type="password" id="rPass"></div>
+            <button class="btn-primary" onclick="handleRegister()">Register Farm →</button>
+            <p class="switch-link">Already a member? <a onclick="toggleAuth(false)">Login</a></p>
+        </div>
+    </div>
+</div>
+
+<!-- ── MAIN APPLICATION ── -->
+<div id="appScreen">
+    <header>
+        <div class="logo">
+            <div class="logo-icon">🌿</div>
+            <div class="logo-text">KhetMitra</div>
+        </div>
+        <div style="display:flex; align-items:center; gap:15px;">
+            <div style="text-align:right">
+                <div id="uName" style="font-weight:700; color:var(--straw); font-size:14px;">Farmer Name</div>
+                <div id="uLoc" style="font-size:11px; color:var(--sage);">Location</div>
+            </div>
+            <button class="btn-primary" style="padding: 8px 15px; font-size: 12px;" onclick="handleLogout()">Logout</button>
+        </div>
+    </header>
+
+    <nav class="tab-nav">
+        <div class="tab-btn active" onclick="switchTab('dash', this)">🏠 Dashboard</div>
+        <div class="tab-btn" onclick="switchTab('schemes', this)">💰 Scheme Finder</div>
+        <div class="tab-btn" onclick="switchTab('weather', this)">🌦 Weather</div>
+        <div class="tab-btn" onclick="switchTab('banks', this)">🏦 Bank Locator</div>
+    </nav>
+
+    <!-- DASHBOARD TAB -->
+    <div id="tab-dash" class="tab-pane active">
+        <div class="hero-band">
+            <div class="welcome-msg">
+                <h1 id="greetMsg">Good Morning, Farmer</h1>
+                <p id="farmSub" style="color:var(--sage); margin-top:5px;">Rabi Season · 12.5 acres active</p>
+            </div>
+            <div style="display:flex; gap:30px; align-items:center;">
+                <div id="wIcon" style="font-size:45px;">☀️</div>
+                <div>
+                    <div id="wTemp" style="font-family:'Space Mono'; font-size:40px; font-weight:700; color:var(--wheat);">--°</div>
+                    <div id="wCond" style="font-size:14px; color:var(--straw);">Clear Sky</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="main-grid" style="margin-top:25px;">
+            <!-- Soil Card -->
+            <div class="card" style="--ca: var(--clay)">
+                <span class="card-title">Soil Health</span>
+                <div class="soil-grid">
+                    <div class="soil-item"><div class="soil-lbl">Moisture</div><div class="soil-val">62%</div></div>
+                    <div class="soil-item"><div class="soil-lbl">pH Level</div><div class="soil-val">6.8</div></div>
+                    <div class="soil-item"><div class="soil-lbl">Nitrogen</div><div class="soil-val" style="color:var(--warn)">LOW</div></div>
+                    <div class="soil-item"><div class="soil-lbl">Potassium</div><div class="soil-val">OK</div></div>
+                </div>
+                <button class="btn-primary" style="margin-top:15px; padding:8px; font-size:11px;">View Full Lab Report</button>
+            </div>
+
+            <!-- Crop Health -->
+            <div class="card" style="--ca: var(--leaf)">
+                <span class="card-title">Crop Health</span>
+                <div class="list-row"><span>🌾 Wheat (Field A)</span><span style="color:var(--sage)">Excellent</span></div>
+                <div class="list-row" style="background:rgba(192,57,43,0.1)"><span>🧅 Onion (Field B)</span><span style="color:var(--danger)">Pest Risk</span></div>
+                <div class="list-row"><span>🍅 Tomato (Field C)</span><span style="color:var(--sage)">Healthy</span></div>
+                <div style="margin-top:15px; font-size:11px; color:var(--sage);">Satellite Scan: 2 hours ago</div>
+            </div>
+
+            <!-- Alerts -->
+            <div class="card" style="--ca: var(--danger)">
+                <span class="card-title">Urgent Alerts</span>
+                <div class="alert-item">🚨 <strong>Thrips Detected:</strong> Spray Fipronil in Field B within 24hrs.</div>
+                <div class="alert-item warn">⚠️ <strong>Nitrogen Low:</strong> Add urea before Wednesday rain.</div>
+                <div class="alert-item info">ℹ️ <strong>Market Peak:</strong> Tomato prices up 15% today.</div>
+            </div>
+
+            <!-- Market Prices -->
+            <div class="card" style="--ca: var(--wheat)">
+                <span class="card-title">Live Market (APMC)</span>
+                <div class="list-row"><div>Wheat</div><div><b>₹2,480</b> <span class="price-up">▲ 5%</span></div></div>
+                <div class="list-row"><div>Onion</div><div><b>₹1,840</b> <span class="price-dn">▼ 3%</span></div></div>
+                <div class="list-row"><div>Tomato</div><div><b>₹2,800</b> <span class="price-up">▲ 12%</span></div></div>
+                <div style="text-align:center; margin-top:10px;"><small style="color:var(--sage)">Source: Agmarknet Live</small></div>
+            </div>
+
+            <!-- Yield -->
+            <div class="card" style="--ca: var(--sky)">
+                <span class="card-title">Season Forecast</span>
+                <div class="list-row"><span>Estimated Revenue</span><span style="color:var(--wheat); font-weight:700;">₹4,82,000</span></div>
+                <div class="list-row"><span>Confidence Score</span><span>88%</span></div>
+                <div style="height:8px; background:#222; border-radius:10px; margin-top:15px;">
+                    <div style="width:88%; height:100%; background:var(--leaf); border-radius:10px;"></div>
+                </div>
+            </div>
+
+            <!-- AI Advisor -->
+            <div class="card" style="background: linear-gradient(160deg, #141F11, #0D1D2A);">
+                <span class="card-title">AI Farm Advisor</span>
+                <p style="font-size:12px; line-height:1.5; margin-bottom:15px;">Ask me about pests, fertilizers, or government subsidies.</p>
+                <button class="btn-primary" onclick="switchTab('schemes')">💬 Get Expert Advice</button>
+            </div>
+
+            <!-- Tasks -->
+            <div class="card" style="grid-column: span 3; --ca: var(--straw)">
+                <span class="card-title">Action Plan for Today</span>
+                <div class="task-grid">
+                    <div class="task-card"><b>Spray</b><br>Onion (Field B)<br><small>Pest control</small></div>
+                    <div class="task-card"><b>Fertilize</b><br>Apply Urea<br><small>Before rain</small></div>
+                    <div class="task-card task-done"><b>Irrigate</b><br>Drip Field A<br><small>Completed 8AM</small></div>
+                    <div class="task-card"><b>Contact</b><br>Tomato Buyer<br><small>Negotiate price</small></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SCHEME FINDER TAB -->
+    <div id="tab-schemes" class="tab-pane">
+        <h2 style="font-family:'Playfair Display'; font-size:28px; color:var(--straw);">AI Scheme & Subsidy Finder</h2>
+        <p style="color:var(--sage); margin-bottom:25px;">Enter your details to find eligible government loans and benefits.</p>
+        
+        <div style="background:var(--card); border:1px solid var(--border); padding:25px; border-radius:15px; max-width:800px;">
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
+                <div class="form-group"><label>State</label><input type="text" id="sfState"></div>
+                <div class="form-group"><label>Primary Crop</label><input type="text" id="sfCrop"></div>
+                <div class="form-group"><label>Land Size (Acres)</label><input type="number" id="sfLand"></div>
+                <div class="form-group"><label>Annual Income (₹)</label><input type="number" id="sfIncome"></div>
+            </div>
+            <button class="btn-primary" id="sfBtn" onclick="runSchemeFinder()">🔍 Find My Benefits →</button>
+        </div>
+        <div id="schemeResults" style="margin-top:30px;"></div>
+    </div>
+
+    <!-- WEATHER TAB -->
+    <div id="tab-weather" class="tab-pane">
+        <h2 style="font-family:'Playfair Display'; font-size:28px; color:var(--straw);">7-Day Detailed Forecast</h2>
+        <div id="weatherDetailed" style="margin-top:20px;">
+            <p style="color:var(--sage)">Fetching satellite data...</p>
+        </div>
+    </div>
+
+    <!-- BANKS TAB -->
+    <div id="tab-banks" class="tab-pane">
+        <h2 style="font-family:'Playfair Display'; font-size:28px; color:var(--straw);">Bank & KCC Locator</h2>
+        <p style="color:var(--sage)">Find nearest banks for Kisan Credit Card (KCC) and Gold Loans.</p>
+        <div id="bankMap"></div>
+        <div id="bankList" style="margin-top:20px; display:grid; grid-template-columns:repeat(auto-fit, minmax(250px, 1fr)); gap:15px;"></div>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+    let currentUser = null;
+    let map = null;
+
+    // --- Boot System ---
+    window.onload = () => {
+        const saved = localStorage.getItem('km_user');
+        if(saved) {
+            currentUser = JSON.parse(saved);
+            bootApp();
+        }
+        // Demo User
+        const users = JSON.parse(localStorage.getItem('km_users') || '{}');
+        if(!users['9999999999']) {
+            users['9999999999'] = {name: "Ramesh Patil", mobile: "9999999999", pass: "1234", state: "Maharashtra", land: 12.5, crop: "Onion", loc: "Nashik"};
+            localStorage.setItem('km_users', JSON.stringify(users));
+        }
+    };
+
+    function toggleAuth(isReg) {
+        document.getElementById('loginForm').style.display = isReg ? 'none' : 'block';
+        document.getElementById('regForm').style.display = isReg ? 'block' : 'none';
+    }
+
+    function handleLogin() {
+        const m = document.getElementById('lMobile').value;
+        const p = document.getElementById('lPass').value;
+        const users = JSON.parse(localStorage.getItem('km_users') || '{}');
+        
+        if(users[m] && users[m].pass === p) {
+            currentUser = users[m];
+            localStorage.setItem('km_user', JSON.stringify(currentUser));
+            bootApp();
+        } else {
+            alert("Invalid Credentials!");
+        }
+    }
+
+    function handleRegister() {
+        const m = document.getElementById('rMobile').value;
+        const n = document.getElementById('rName').value;
+        const s = document.getElementById('rState').value;
+        const l = document.getElementById('rLand').value;
+        const c = document.getElementById('rCrop').value;
+        const p = document.getElementById('rPass').value;
+
+        if(!m || !n || !p) return alert("Fill all fields");
+        
+        const users = JSON.parse(localStorage.getItem('km_users') || '{}');
+        users[m] = {name: n, mobile: m, pass: p, state: s, land: l, crop: c, loc: s};
+        localStorage.setItem('km_users', JSON.stringify(users));
+        alert("Registration Successful!");
+        toggleAuth(false);
+    }
+
+    function handleLogout() {
+        localStorage.removeItem('km_user');
+        location.reload();
+    }
+
+    function bootApp() {
+        document.getElementById('loginScreen').style.display = 'none';
+        document.getElementById('appScreen').style.display = 'block';
+        
+        document.getElementById('uName').innerText = currentUser.name;
+        document.getElementById('uLoc').innerText = `📍 ${currentUser.loc || currentUser.state}`;
+        document.getElementById('greetMsg').innerText = `Good Morning, ${currentUser.name.split(' ')[0]}! 🌅`;
+        document.getElementById('farmSub').innerText = `Rabi Season · ${currentUser.land} acres · ${currentUser.crop}`;
+        
+        // Fill Scheme Finder
+        document.getElementById('sfState').value = currentUser.state;
+        document.getElementById('sfCrop').value = currentUser.crop;
+        document.getElementById('sfLand').value = currentUser.land;
+        document.getElementById('sfIncome').value = "180000";
+
+        loadWeatherData();
+    }
+
+    // --- Tab System ---
+    function switchTab(tab, el) {
+        document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById('tab-' + tab).classList.add('active');
+        el.classList.add('active');
+
+        if(tab === 'banks') initBankMap();
+    }
+
+    // --- Weather Logic ---
+    async function loadWeatherData() {
+        try {
+            const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=19.99&longitude=73.78&current=temperature_2m,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=Asia%2FKolkata`);
+            const data = await res.json();
+            
+            const temp = Math.round(data.current.temperature_2m);
+            document.getElementById('wTemp').innerText = temp + "°";
+            
+            // Generate detailed weather view
+            let html = `<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(100px, 1fr)); gap:15px;">`;
+            data.daily.time.forEach((t, i) => {
+                html += `<div class="soil-item" style="text-align:center">
+                    <div style="font-size:11px; margin-bottom:5px;">${t.split('-').slice(1).join('/')}</div>
+                    <div style="font-size:24px;">🌤</div>
+                    <div style="font-weight:700">${Math.round(data.daily.temperature_2m_max[i])}°</div>
+                </div>`;
+            });
+            html += `</div>`;
+            document.getElementById('weatherDetailed').innerHTML = html;
+        } catch(e) { console.error("Weather load failed"); }
+    }
+
+    // --- Bank Map Logic ---
+    function initBankMap() {
+        if(map) return;
+        map = L.map('bankMap').setView([19.9975, 73.7898], 13);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+        
+        // Simulate finding banks
+        const locations = [
+            {n: "State Bank of India - Agri Branch", l: [20.00, 73.79], d: "1.2 km"},
+            {n: "Bank of Baroda - KCC Center", l: [19.99, 73.78], d: "2.5 km"},
+            {n: "Nashik District Co-op Bank", l: [20.01, 73.77], d: "0.8 km"}
+        ];
+
+        let listHtml = "";
+        locations.forEach(loc => {
+            L.marker(loc.l).addTo(map).bindPopup(loc.n);
+            listHtml += `<div class="soil-item">
+                <div style="font-weight:700; color:var(--straw)">${loc.n}</div>
+                <div style="font-size:11px; color:var(--sage)">Distance: ${loc.d}</div>
+                <button class="btn-primary" style="padding:5px; font-size:10px; margin-top:5px;">Get Directions</button>
+            </div>`;
+        });
+        document.getElementById('bankList').innerHTML = listHtml;
+    }
+
+    // --- AI Scheme Logic (Simulated) ---
+    async function runSchemeFinder() {
+        const btn = document.getElementById('sfBtn');
+        const res = document.getElementById('schemeResults');
+        btn.innerText = "Searching Government Databases...";
+        
+        setTimeout(() => {
+            btn.innerText = "🔍 Find My Benefits →";
+            res.innerHTML = `
+                <div class="result-card">
+                    <h3>🏦 PM Kisan Credit Card (KCC)</h3>
+                    <p style="font-size:13px; margin: 10px 0;">Eligible for up to ₹3,00,000 at 4% interest interest subvention.</p>
+                    <div style="color:var(--wheat); font-weight:700;">Status: Highly Eligible</div>
+                </div>
+                <div class="result-card" style="border-left-color: var(--warn)">
+                    <h3>🛡 PM Fasal Bima Yojana</h3>
+                    <p style="font-size:13px; margin: 10px 0;">Premium for your ${currentUser.land} acres is estimated at ₹1,450.</p>
+                    <div style="color:var(--warn); font-weight:700;">Deadline: 31st March</div>
+                </div>
+                <div class="result-card" style="border-left-color: var(--sky)">
+                    <h3>💧 Drip Irrigation Subsidy</h3>
+                    <p style="font-size:13px; margin: 10px 0;">Maharashtra Govt offers 80% subsidy for small farmers.</p>
+                    <button class="btn-primary" style="width:auto; padding:8px 20px;">Apply on MahaDBT</button>
+                </div>
+            `;
+        }, 1500);
+    }
+</script>
+</body>
+</html>
